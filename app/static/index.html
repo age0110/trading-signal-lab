@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Trading Signal Lab</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    :root{--bg:#080b12;--panel:#101827;--panel2:#121d30;--text:#e8eefc;--muted:#94a3b8;--line:#26364f;--green:#31d190;--red:#fb7185;--blue:#60a5fa;--amber:#fbbf24;--purple:#a78bfa}
+    *{box-sizing:border-box} body{margin:0;background:radial-gradient(circle at top left,#14203a,#080b12 45%);font-family:Inter,ui-sans-serif,system-ui,Segoe UI,Arial;color:var(--text)}
+    header{padding:26px 32px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;gap:20px;position:sticky;top:0;background:rgba(8,11,18,.84);backdrop-filter:blur(14px);z-index:2}
+    h1{font-size:26px;margin:0}.sub{color:var(--muted);font-size:14px;margin-top:5px}.badge{border:1px solid var(--line);border-radius:999px;padding:8px 12px;color:#c7d2fe;background:#0b1220}
+    main{padding:24px;display:grid;grid-template-columns:1.1fr 1.2fr .9fr;gap:18px}.card{background:linear-gradient(180deg,rgba(18,29,48,.96),rgba(13,20,33,.96));border:1px solid var(--line);border-radius:18px;padding:18px;box-shadow:0 20px 60px rgba(0,0,0,.25)}
+    .wide{grid-column:1/3}.full{grid-column:1/4}.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}.between{justify-content:space-between}.pill{padding:5px 9px;border-radius:999px;font-size:12px;border:1px solid var(--line);color:var(--muted)}.ok{color:var(--green)}.warn{color:var(--amber)}.bad{color:var(--red)}
+    h2{margin:0 0 14px;font-size:17px} h3{margin:12px 0 6px;font-size:14px;color:#cbd5e1}.muted{color:var(--muted)}
+    input,select,textarea,button{background:#0b1220;border:1px solid var(--line);color:var(--text);border-radius:12px;padding:10px;font:inherit}textarea{width:100%;min-height:92px}button{cursor:pointer;background:linear-gradient(135deg,#2563eb,#7c3aed);border:0;font-weight:700}button.secondary{background:#0b1220;border:1px solid var(--line)}
+    .source{border:1px solid var(--line);border-radius:14px;padding:12px;margin-bottom:10px;background:#0b1220}.metric{background:#0b1220;border:1px solid var(--line);padding:13px;border-radius:14px;min-width:120px}.metric b{font-size:21px}.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.step{display:flex;gap:10px;margin:10px 0}.num{width:25px;height:25px;border-radius:50%;display:grid;place-items:center;background:#1d4ed8;font-size:12px;font-weight:800}.order{border-left:3px solid var(--purple);padding:10px;background:#0b1220;border-radius:10px;margin:8px 0}.small{font-size:12px}.arrow{color:var(--blue);font-weight:900}.conn{display:flex;justify-content:space-between;padding:10px;border-bottom:1px solid var(--line)}.conn:last-child{border-bottom:0}@media(max-width:1000px){main{grid-template-columns:1fr}.wide,.full{grid-column:auto}}
+  </style>
+</head>
+<body>
+<header>
+  <div><h1>Trading Signal Lab</h1><div class="sub">Source → Ingest → Guardrails → Backtest → Automate → Learn — sandbox MVP</div></div>
+  <div class="row"><span class="badge" id="mode">Loading…</span><button onclick="refresh()" class="secondary">Refresh</button></div>
+</header>
+<main>
+  <section class="card">
+    <h2>Connections</h2><div id="connections"></div>
+    <h3>Account</h3><div id="account" class="muted small"></div>
+  </section>
+  <section class="card wide">
+    <div class="row between"><h2>Backtest Workbench</h2><span class="pill">test before automate</span></div>
+    <div class="row"><select id="strategy"><option value="wheel_strategy">Wheel strategy</option><option value="copy_trade">Copy trade source</option></select><input id="symbol" value="TSLA" maxlength="6"/><button onclick="runBacktest()">Run backtest</button></div>
+    <div id="metrics" class="row" style="margin:14px 0"></div><canvas id="chart" height="120"></canvas><div id="notes" class="muted small"></div>
+  </section>
+  <section class="card">
+    <h2>Signal Sources</h2><div id="sources"></div>
+  </section>
+  <section class="card">
+    <h2>Manual Alert Ingest</h2><textarea id="alertText">Buy 3 TSLA shares on Monday if backtest/guardrails pass.</textarea><div class="row"><input id="alertSymbol" value="TSLA"/><select id="alertSide"><option>buy</option><option>sell</option></select><input id="alertQty" type="number" value="3" min="1" style="width:80px"/><button onclick="ingest()">Create draft</button></div>
+  </section>
+  <section class="card">
+    <h2>Automations</h2><div id="automations"></div><h3>Create quick rule</h3><div class="row"><input id="autoName" value="Daily source scan"/><select id="autoSource"><option value="manual">manual</option><option value="wheel">wheel</option><option value="politicians">politicians</option></select><button onclick="createAutomation()">Add</button></div>
+  </section>
+  <section class="card">
+    <h2>Guardrails</h2><div id="guardrails" class="small"></div><h3>Draft Orders</h3><div id="orders"></div>
+  </section>
+  <section class="card full">
+    <div class="grid3">
+      <div class="step"><div class="num">1</div><div><b>Source</b><div class="muted small">politicians, whales, emails, manual alerts, wheel setup</div></div></div>
+      <div class="step"><div class="num">2</div><div><b>Ingest</b><div class="muted small">normalize alerts into candidate trades</div></div></div>
+      <div class="step"><div class="num">3</div><div><b>Guardrails</b><div class="muted small">position limits, blocked symbols, approval mode</div></div></div>
+      <div class="step"><div class="num">4</div><div><b>Backtest</b><div class="muted small">compare to SPY before action</div></div></div>
+      <div class="step"><div class="num">5</div><div><b>Automate</b><div class="muted small">scheduled scans / drafts, not uncontrolled live orders</div></div></div>
+      <div class="step"><div class="num">6</div><div><b>Learn</b><div class="muted small">log outcomes and refine rules</div></div></div>
+    </div>
+    <h3>Learning Log</h3><div id="learn" class="muted small"></div>
+  </section>
+</main>
+<script>
+let chart;
+const cls=s=>s==='connected'?'ok':(s==='mock'?'warn':'bad');
+async function refresh(){const s=await (await fetch('/api/state')).json(); render(s)}
+function render(s){
+  mode.textContent=s.account.mode==='alpaca_paper'?'Alpaca paper connected':'Sandbox / mock mode';
+  connections.innerHTML=s.connections.map(c=>`<div class="conn"><div><b>${c.name}</b><div class="muted small">${c.detail}</div></div><span class="pill ${cls(c.status)}">${c.status}</span></div>`).join('');
+  account.innerHTML=`Equity: $${s.account.equity} · Buying power: $${s.account.buying_power} · ${s.account.currency}`;
+  sources.innerHTML=s.sources.map(x=>`<div class="source"><div class="row between"><b>${x.name}</b><span class="pill ${x.connected?'ok':'warn'}">${x.connected?'live':'mock'}</span></div><div class="muted small">${x.description}</div><div class="small">Last: ${x.last_signal}</div></div>`).join('');
+  automations.innerHTML=s.automations.map(a=>`<div class="source"><div class="row between"><b>${a.name}</b><span class="pill ${a.enabled?'ok':'warn'}">${a.enabled?'on':'off'}</span></div><div class="small">${a.cadence} · ${a.risk_mode}</div><div class="muted small">${a.instructions}</div></div>`).join('');
+  guardrails.innerHTML=Object.entries(s.guardrails).map(([k,v])=>`<div class="conn"><span>${k}</span><b>${Array.isArray(v)?v.join(', '):v}</b></div>`).join('');
+  orders.innerHTML=s.draft_orders.length?s.draft_orders.map(o=>`<div class="order"><b>${o.side.toUpperCase()} ${o.qty} ${o.symbol}</b><div class="muted small">${o.rationale}</div><div class="small">${o.guardrail_checks.join(' · ')}</div></div>`).join(''):'<div class="muted small">No draft orders yet.</div>';
+  learn.innerHTML=s.learning_log.map(l=>`<div>• ${l.event}</div>`).join('');
+}
+async function runBacktest(){const res=await (await fetch('/api/backtest',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({strategy:strategy.value,symbol:symbol.value})})).json();
+ metrics.innerHTML=[['Return',res.total_return_pct+'%'],['SPY',res.benchmark_return_pct+'%'],['Sharpe',res.sharpe],['Max DD',res.max_drawdown_pct+'%'],['Trades',res.trades],['Win',res.win_rate_pct+'%']].map(m=>`<div class="metric"><div class="muted small">${m[0]}</div><b>${m[1]}</b></div>`).join('');
+ notes.innerHTML=res.notes.map(n=>'• '+n).join('<br>');
+ const labels=res.equity_curve.map(p=>p.date), data=res.equity_curve.map(p=>p.equity); if(chart)chart.destroy(); chart=new Chart(document.getElementById('chart'),{type:'line',data:{labels,datasets:[{label:res.strategy+' '+res.symbol,data,borderColor:'#60a5fa',backgroundColor:'rgba(96,165,250,.12)',fill:true,tension:.25}]},options:{plugins:{legend:{labels:{color:'#e8eefc'}}},scales:{x:{ticks:{color:'#94a3b8',maxTicksLimit:8},grid:{color:'#1f2937'}},y:{ticks:{color:'#94a3b8'},grid:{color:'#1f2937'}}}}});
+}
+async function ingest(){await fetch('/api/ingest/manual',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:alertText.value,symbol:alertSymbol.value,side:alertSide.value,qty:Number(alertQty.value)})}); await refresh()}
+async function createAutomation(){await fetch('/api/automation',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:autoName.value,source_id:autoSource.value,cadence:'daily 09:30 ET',risk_mode:'approval_required',enabled:true,instructions:'Scan, backtest, and draft only.'})}); await refresh()}
+refresh().then(runBacktest);
+</script>
+</body>
+</html>

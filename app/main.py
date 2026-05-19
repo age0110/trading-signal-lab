@@ -1,4 +1,5 @@
 from __future__ import annotations
+import os
 from fastapi import FastAPI
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
@@ -9,8 +10,10 @@ from .backtester import run_backtest
 from .broker import get_broker
 from .models import to_dict, AutomationRule
 
+STATIC_DIR = os.path.join(os.path.dirname(__file__), 'static')
+
 app=FastAPI(title='Trading Signal Lab', version='0.1.0')
-app.mount('/static', StaticFiles(directory='/home/ad/trading-signal-lab/app/static'), name='static')
+app.mount('/static', StaticFiles(directory=STATIC_DIR), name='static')
 
 class BacktestRequest(BaseModel):
     strategy: str='wheel_strategy'
@@ -34,7 +37,7 @@ class OrderDraftRequest(BaseModel):
     rationale: str='User requested sandbox draft order.'
 
 @app.get('/')
-def index(): return FileResponse('/home/ad/trading-signal-lab/app/static/index.html')
+def index(): return FileResponse(os.path.join(STATIC_DIR, 'index.html'))
 
 @app.get('/api/health')
 def health(): return {'ok': True}
